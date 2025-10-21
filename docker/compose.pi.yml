@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: gobii-db
+    environment:
+      POSTGRES_USER: gobii
+      POSTGRES_DB: gobii
+      POSTGRES_PASSWORD_FILE: /config/postgres-password
+    volumes:
+      - config:/config
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: gobii-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.arm64
+    image: gobii-platform:pi-arm64
+    container_name: gobii-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - config:/config
+      - static:/app/staticfiles
+      - media:/app/mediafiles
+      - shm:/dev/shm
+    entrypoint: ["/entrypoint.sh"]
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    restart: "no"
+
+  web:
+    image: gobii-platform:pi-arm64
+    container_name: gobii-web
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    volumes:
+      - config:/config
+      - static:/app/staticfiles
+      - media:/app/mediafiles
+      - shm:/dev/shm
+    shm_size: 1gb
+    restart: unless-stopped
+
+  worker:
+    image: gobii-platform:pi-arm64
+    container_name: gobii-worker
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - config:/config
+      - static:/app/staticfiles
+      - media:/app/mediafiles
+      - shm:/dev/shm
+    shm_size: 1gb
+    command: ["celery", "-A", "config.celery.app", "worker", "-l", "info"]
+    restart: unless-stopped
+
+  beat:
+    image: gobii-platform:pi-arm64
+    container_name: gobii-beat
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - config:/config
+      - static:/app/staticfiles
+      - media:/app/mediafiles
+    command: ["celery", "-A", "config.celery.app", "beat", "-l", "info", "-S", "redbeat.RedBeatScheduler"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  static:
+  media:
+  config:
+  shm:
