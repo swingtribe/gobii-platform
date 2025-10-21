@@ -34,6 +34,8 @@ pip-wheel-metadata/
 staticfiles/
 mediafiles/
 
+# Backup files
+*.bak
 
 # AI
 .claude/
