@@ -63,6 +63,8 @@ services:
       - media:/app/mediafiles
       - shm:/dev/shm
     shm_size: 1gb
+    env_file:
+      - .env
     restart: unless-stopped
 
   worker:
