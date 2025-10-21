@@ -63,6 +63,12 @@ services:
       - media:/app/mediafiles
       - shm:/dev/shm
     shm_size: 1gb
+    environment:
+      DEBUG: "1"
+      CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://pi5-4.taild0df40.ts.net,https://pi5-4.taild0df40.ts.net,https://pi5-4.taild0df40.ts.net:443
+      SESSION_COOKIE_SECURE: "1"
+      CSRF_COOKIE_SECURE: "1"
+      PUBLIC_SITE_URL: https://pi5-4.taild0df40.ts.net
     restart: unless-stopped
 
   worker:
@@ -75,8 +81,9 @@ services:
       - config:/config
       - static:/app/staticfiles
       - media:/app/mediafiles
-      - shm:/dev/shm
     shm_size: 1gb
+    environment:
+      TMPDIR: /tmp
     command: ["celery", "-A", "config.celery.app", "worker", "-l", "info"]
     restart: unless-stopped
 
