@@ -1,0 +1,41 @@
+services:
+  web:
+    image: gobii-platform-web:latest
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.arm64
+    env_file:
+      - .env
+  worker:
+    image: gobii-platform-worker:latest
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.arm64
+    env_file:
+      - .env
+  beat:
+    image: gobii-platform-beat:latest
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.arm64
+    env_file:
+      - .env
+  migrate:
+    image: gobii-platform-migrate:latest
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.arm64
+    env_file:
+      - .env
+  collectstatic:
+    image: gobii-platform-collectstatic:latest
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.arm64
+    env_file:
+      - .env

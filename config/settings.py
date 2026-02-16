@@ -446,6 +446,9 @@ SIGNUP_BLOCKED_EMAIL_DOMAINS = [
     if domain.strip()
 ]
 
+
+# Restrict signups to specific email addresses (comma-separated). If set, only these emails can sign up.
+SIGNUP_ALLOWED_EMAILS = [e.strip() for e in env("SIGNUP_ALLOWED_EMAILS", default="").split(",") if e.strip()]
 # Mailgun credentials only exist in hosted/prod environments; local proprietary
 # runs typically omit them. Use that to decide whether to enforce email
 # verification, while still allowing an explicit override via ENV.
