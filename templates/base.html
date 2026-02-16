@@ -409,9 +409,11 @@
     }
   </style>
 
-  {% if show_signup_tracking %}
+  {% if show_signup_tracking and environment.is_production and settings.GOBII_PROPRIETARY_MODE %}
     <script>
       (function () {
+
+        {% if settings.REDDIT_PIXEL_ID %}
         /* Avoid ReferenceError if the pixel hasn’t loaded yet */
         if (typeof window.rdt === 'function') {
           rdt('track', 'SignUp', {
@@ -420,11 +422,14 @@
             conversionId: "reg-{{ user.id }}",
           });
         }
+        {% endif %}
 
+        {% if settings.GA_MEASUREMENT_ID %}
         if (typeof window.gtag === 'function') {
           const utmParams = window.getUTMParams ? window.getUTMParams() : {};
           gtag('event', 'sign_up', { method: 'email', ...utmParams });
         }
+        {% endif %}
       })();
     </script>
     <!-- Clear the session flag -->
@@ -540,6 +545,15 @@
   b.type = "text/javascript";b.async = true;
   b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
   s.parentNode.insertBefore(b, s);})(window.lintrk);
+  {% if show_signup_tracking and environment.is_production and settings.GOBII_PROPRIETARY_MODE %}
+      (function () {
+        {% if settings.LINKEDIN_SIGNUP_CONVERSION_ID  %}
+        if (typeof window.lintrk === 'function') {
+          window.lintrk('track', { conversion_id: {{ settings.LINKEDIN_SIGNUP_CONVERSION_ID  }} });
+        }
+        {% endif %}
+      })();
+  {% endif %}
   </script>
   <noscript>
   <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid={{ settings.LINKEDIN_PARTNER_ID }}&fmt=gif" />

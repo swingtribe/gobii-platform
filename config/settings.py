@@ -6,6 +6,7 @@ from pathlib import Path
 import environ, os
 from decimal import Decimal
 from typing import Any
+from urllib.parse import urlparse
 from celery.schedules import crontab
 from django.core.exceptions import ImproperlyConfigured
 
@@ -138,8 +139,6 @@ CSRF_TRUSTED_ORIGINS = env.list(
     else _COMMUNITY_DEFAULT_TRUSTED_ORIGINS,
 )
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not DEBUG)
-CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not DEBUG)
 USE_X_FORWARDED_HOST = True
 SITE_ID = 1
 
@@ -151,6 +150,23 @@ PUBLIC_SITE_URL = env(
     "PUBLIC_SITE_URL",
     default=_proprietary_default("brand", "PUBLIC_SITE_URL", fallback="http://localhost:8000"),
 )
+
+
+def _cookie_secure_default(site_url: str) -> bool:
+    parsed = urlparse((site_url or "").strip())
+    scheme = parsed.scheme.lower()
+    if scheme == "https":
+        return True
+    if scheme == "http":
+        return False
+    if not scheme and parsed.netloc:
+        return False
+    return not DEBUG
+
+
+_SECURE_COOKIE_DEFAULT = _cookie_secure_default(PUBLIC_SITE_URL)
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=_SECURE_COOKIE_DEFAULT)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=_SECURE_COOKIE_DEFAULT)
 PUBLIC_CONTACT_EMAIL = env(
     "PUBLIC_CONTACT_EMAIL",
     default=_proprietary_default("brand", "PUBLIC_CONTACT_EMAIL"),
@@ -237,6 +253,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "middleware.utm_capture.UTMTrackingMiddleware",
     "django.middleware.common.CommonMiddleware",
     "setup.middleware.FirstRunSetupMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -446,10 +463,10 @@ SIGNUP_BLOCKED_EMAIL_DOMAINS = [
     if domain.strip()
 ]
 
+# Mailgun credentials only exist in hosted/prod environments; local proprietary
 
 # Restrict signups to specific email addresses (comma-separated). If set, only these emails can sign up.
 SIGNUP_ALLOWED_EMAILS = [e.strip() for e in env("SIGNUP_ALLOWED_EMAILS", default="").split(",") if e.strip()]
-# Mailgun credentials only exist in hosted/prod environments; local proprietary
 # runs typically omit them. Use that to decide whether to enforce email
 # verification, while still allowing an explicit override via ENV.
 MAILGUN_API_KEY = env("MAILGUN_API_KEY", default="")
@@ -788,6 +805,11 @@ META_PIXEL_ID = env(
 LINKEDIN_PARTNER_ID = env(
     "LINKEDIN_PARTNER_ID",
     default=_proprietary_default("analytics", "LINKEDIN_PARTNER_ID"),
+)
+
+LINKEDIN_SIGNUP_CONVERSION_ID = env(
+    "LINKEDIN_SIGNUP_CONVERSION_ID",
+    default=_proprietary_default("analytics", "LINKEDIN_SIGNUP_CONVERSION_ID"),
 )
 
 # Task Credit Settings
